@@ -1,0 +1,61 @@
+services:
+  app:
+    build: .
+    env_file: .env
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      - mysql
+      - redis
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "8000:80"
+    volumes:
+      - .:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: pedido_certo
+      MYSQL_USER: pedido_certo
+      MYSQL_PASSWORD: pedido_certo
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+  redis:
+    image: redis:7.4-alpine
+    ports:
+      - "6379:6379"
+
+  queue:
+    build: .
+    command: php artisan queue:work redis --queue=critical,messages,orders,webhooks,automations,campaigns,reports,imports,notifications,default --sleep=1 --tries=3
+    env_file: .env
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      - app
+      - redis
+
+  reverb:
+    build: .
+    command: php artisan reverb:start --host=0.0.0.0 --port=8080
+    env_file: .env
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      - app
+      - redis
+
+volumes:
+  mysql-data:
