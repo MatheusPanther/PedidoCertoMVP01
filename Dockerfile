@@ -22,3 +22,4 @@ RUN composer install --no-interaction --prefer-dist --optimize-autoloader \
 EXPOSE 9000
 
 CMD ["php-fpm"]
+ 
